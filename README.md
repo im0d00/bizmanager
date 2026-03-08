@@ -193,6 +193,15 @@ https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packa
 
 ---
 
+## Documentation
+
+| Guide | Audience | Contents |
+|-------|----------|----------|
+| [User Guide](docs/USER_GUIDE.md) | Business users | Dashboard, customers, products, sales, expenses, employees, reports, settings, backup, role permissions, tips |
+| [Developer Guide](docs/DEVELOPER_GUIDE.md) | Developers | Architecture, full API reference, database schema, adding features, production deployment, contributing |
+
+---
+
 ## Architecture
 
 ```
