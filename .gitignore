@@ -4,6 +4,8 @@ frontend/node_modules/
 
 # Database files
 backend/database/*.db
+backend/database/*.db-shm
+backend/database/*.db-wal
 backend/database/backup-*.db
 
 # Environment files
