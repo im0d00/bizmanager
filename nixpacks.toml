@@ -8,10 +8,10 @@ NIXPACKS_NODE_VERSION = "20"
 nixPkgs = ["nodejs_20", "npm", "python3"]
 
 [phases.install]
-# Skip automatic install - start.sh handles it
+cmds = []
 
 [phases.build]
-# Skip build phase - start.sh handles everything
+cmds = []
 
 [start]
 cmd = "bash start.sh"
