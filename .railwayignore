@@ -1,0 +1,37 @@
+# Railway deployment ignore file
+# Excludes frontend and unnecessary files to reduce build size and deployment time
+
+# Frontend (deployed separately to Vercel/Netlify)
+frontend/
+frontend/**/*
+
+# Documentation
+docs/
+VERCEL_DEPLOYMENT.md
+VERCEL_ERRORS.md
+
+# Development files
+*.md
+README.md
+.git/
+.gitignore
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Scripts for local development
+start-linux.sh
+start-windows.bat

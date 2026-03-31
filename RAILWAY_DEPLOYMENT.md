@@ -78,15 +78,13 @@ The main deployment script that Railway executes. It:
 ### `railway.toml` (Configuration)
 Railway-specific configuration:
 ```toml
-[build]
-builder = "nixpacks"
-buildCommand = "cd backend && npm install"
-
 [deploy]
 startCommand = "bash start.sh"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 ```
+
+**Note:** We use Railway's default Railpack builder, which automatically detects Node.js projects. The `start.sh` script handles all build and deployment steps.
 
 ### `Procfile` (Fallback)
 Alternative process definition for Heroku-style deployments:
@@ -126,6 +124,19 @@ Railway's filesystem is ephemeral. Data in SQLite will be lost on:
    - Mount volume at `./backend/database`
 
 ### Build Failures
+
+**Symptom:** "npm: command not found" or exit code 137 during build
+
+**Causes:**
+1. Incorrect builder configuration causing npm to not be available
+2. Out of memory during npm install (exit code 137)
+3. Redundant build commands consuming too much memory
+
+**Solution:**
+- Use the simplified `railway.toml` without a custom build command
+- Let Railway's Railpack auto-detect the Node.js environment
+- The `start.sh` script uses `npm ci --omit=dev` to reduce memory usage
+- If still failing, upgrade to Railway Pro for more memory
 
 **Symptom:** "Railpack could not determine how to build the app"
 
