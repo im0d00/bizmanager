@@ -1,0 +1,14 @@
+# Nixpacks configuration for Railway deployment
+# This ensures Node.js is properly installed before running start.sh
+
+[phases.setup]
+nixPkgs = ["nodejs", "npm"]
+
+[phases.install]
+# Skip automatic install - start.sh handles it
+
+[phases.build]
+# Skip build phase - start.sh handles everything
+
+[start]
+cmd = "bash start.sh"
