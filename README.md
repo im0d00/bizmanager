@@ -110,25 +110,18 @@ Serve `frontend/dist/` with any static-file host (nginx, IIS, Caddy, etc.) and p
 
 ⚠️ **Important**: This application uses SQLite for the database. Most cloud platforms have ephemeral filesystems or don't support SQLite. For production, consider migrating to PostgreSQL.
 
+**🚀 NEW: Complete Step-by-Step Deployment Guide**
+
+👉 **[DEPLOYMENT_SETUP.md](DEPLOYMENT_SETUP.md)** — Complete guide showing exactly where to deploy each component and how to connect them together
+
 **Recommended Deployment Strategy:**
-- **Backend**: Deploy to Railway.app (see [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md))
-- **Frontend**: Deploy to Vercel, Netlify, or Cloudflare Pages (see [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md))
+- **Backend**: Deploy to Railway.app
+- **Frontend**: Deploy to Vercel, Netlify, or Cloudflare Pages
 
-**Quick Links:**
-- **[Railway Deployment Guide](RAILWAY_DEPLOYMENT.md)** — Deploy the backend API to Railway
-- **[Vercel Deployment Guide](VERCEL_DEPLOYMENT.md)** — Deploy the frontend to Vercel
-
-Quick start:
-```bash
-# Deploy backend to Railway
-# See RAILWAY_DEPLOYMENT.md for detailed instructions
-# The start.sh script handles everything automatically
-
-# Deploy frontend to Vercel
-npm install -g vercel
-cd frontend
-vercel --prod
-```
+**Deployment Guides:**
+- **[📘 Complete Deployment Setup](DEPLOYMENT_SETUP.md)** — Step-by-step guide with connection details
+- **[Railway Backend Guide](RAILWAY_DEPLOYMENT.md)** — Detailed Railway deployment instructions
+- **[Vercel Frontend Guide](VERCEL_DEPLOYMENT.md)** — Detailed Vercel deployment instructions
 
 ---
 
