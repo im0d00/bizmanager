@@ -87,27 +87,22 @@ restartPolicyMaxRetries = 10
 **Note:** We use Railway's default Railpack builder, which automatically detects Node.js projects. The `start.sh` script handles all build and deployment steps.
 
 ### `nixpacks.toml` (Build Configuration)
-Nixpacks configuration that prevents auto-detection of build commands:
+Nixpacks configuration that explicitly installs Node.js:
 ```toml
 [phases.setup]
+nixPkgs = ["nodejs", "npm"]
 
 [phases.install]
-# Skip automatic npm install detection
+# Skip automatic install - start.sh handles it
 
 [phases.build]
-# Disable build phase - start.sh handles everything
+# Skip build phase - start.sh handles everything
 
 [start]
 cmd = "bash start.sh"
 ```
 
-**Note:** This file ensures that Nixpacks doesn't try to run `npm install` during the build phase before Node.js is available. All installation and setup is handled by `start.sh` at runtime.
-
-### `Procfile` (Fallback)
-Alternative process definition for Heroku-style deployments:
-```
-web: bash start.sh
-```
+**Note:** This file explicitly tells Nixpacks to install Node.js and npm as system packages during the setup phase. This ensures Node.js is available when `start.sh` runs. All application installation and setup is then handled by `start.sh` at runtime.
 
 ---
 
