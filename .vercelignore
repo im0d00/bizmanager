@@ -1,0 +1,31 @@
+# Backend files (cannot be deployed to Vercel due to SQLite)
+backend/
+
+# Development files
+node_modules/
+.env
+.env.local
+*.log
+
+# Build files
+dist/
+.cache/
+
+# Database files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation (optional, uncomment if you don't want to deploy docs)
+# docs/

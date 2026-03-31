@@ -106,6 +106,26 @@ npm run preview   # Preview the production build locally
 
 Serve `frontend/dist/` with any static-file host (nginx, IIS, Caddy, etc.) and point the backend at your domain via `FRONTEND_URL` in `.env`.
 
+### Deploying to Vercel
+
+⚠️ **Important**: Vercel does **not support SQLite databases**. You can deploy the frontend to Vercel, but the backend must be hosted elsewhere (Railway, Render, DigitalOcean, etc.).
+
+See **[VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)** for complete instructions on:
+- Deploying frontend to Vercel
+- Hosting backend on Railway/Render/other platforms
+- Configuring environment variables
+- Common errors and solutions
+
+Quick start:
+```bash
+# Deploy frontend to Vercel
+npm install -g vercel
+vercel --prod
+
+# Update vercel.json with your backend URL
+# Deploy backend to Railway, Render, or similar platform
+```
+
 ---
 
 ## Environment Variables (`backend/.env`)
