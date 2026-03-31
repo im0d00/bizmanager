@@ -31,10 +31,16 @@ fi
 
 echo "------------------------------------------------------------"
 
+# Unset the deprecated npm production config to suppress
+# "npm warn config production Use --omit=dev instead" warnings.
+# Railway's environment may set npm_config_production=true; start.sh
+# already passes --omit=dev explicitly where needed.
+unset npm_config_production
+
 # Navigate to backend directory
 cd backend
 
-# Install dependencies with production flag to reduce memory usage
+# Install dependencies (dev deps excluded via --omit=dev)
 echo "[1/3] Installing backend dependencies..."
 npm ci --omit=dev --prefer-offline || npm install --omit=dev
 

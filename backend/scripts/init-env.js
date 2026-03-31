@@ -30,6 +30,12 @@ if (fs.existsSync(dest)) {
   );
 
   fs.writeFileSync(dest, contents);
-  try { fs.chmodSync(dest, 0o600); } catch (_) { /* chmod not supported on Windows */ }
+  try {
+    fs.chmodSync(dest, 0o600);
+  } catch (_) {
+    // chmod is not supported on Windows — remind the user to restrict the file manually
+    console.warn('WARNING: Could not set restrictive permissions on .env (unsupported on Windows).');
+    console.warn('         Manually restrict access to backend/.env to protect your JWT secrets.');
+  }
   console.log('.env created from .env.example with auto-generated JWT secrets.');
 }
