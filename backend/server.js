@@ -37,7 +37,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Dat
 app.use(require('./middleware/errorHandler'));
 app.use((req, res) => res.status(404).json({ error: `Route ${req.method} ${req.path} not found` }));
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`BizManager API running on port ${PORT}`);
 });
 
