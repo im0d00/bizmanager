@@ -1,6 +1,9 @@
 # Nixpacks configuration for Railway deployment
 # This ensures Node.js is properly installed before running start.sh
 
+[variables]
+NIXPACKS_NODE_VERSION = "20"
+
 [phases.setup]
 nixPkgs = ["nodejs_20", "npm", "python3"]
 
