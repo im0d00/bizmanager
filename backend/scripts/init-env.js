@@ -1,7 +1,9 @@
 /**
- * Cross-platform helper: copies .env.example to .env if .env doesn't already exist.
+ * Cross-platform helper: copies .env.example to .env if .env doesn't already exist,
+ * replacing placeholder JWT secrets with cryptographically random values.
  * Works on Windows, Linux, and macOS — no shell utilities required.
  */
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -15,10 +17,19 @@ if (fs.existsSync(dest)) {
   console.error('ERROR: .env.example not found. Cannot create .env.');
   process.exit(1);
 } else {
-  fs.copyFileSync(src, dest);
-  console.log('.env created from .env.example');
-  console.log('');
-  console.log('IMPORTANT: Open backend/.env and replace the placeholder JWT secrets:');
-  console.log('  JWT_SECRET=<your-long-random-string>');
-  console.log('  JWT_REFRESH_SECRET=<another-long-random-string>');
+  let contents = fs.readFileSync(src, 'utf8');
+
+  // Replace placeholder JWT secrets with cryptographically random 64-byte hex strings
+  contents = contents.replace(
+    /^(JWT_SECRET=).*$/m,
+    `$1${crypto.randomBytes(64).toString('hex')}`
+  );
+  contents = contents.replace(
+    /^(JWT_REFRESH_SECRET=).*$/m,
+    `$1${crypto.randomBytes(64).toString('hex')}`
+  );
+
+  fs.writeFileSync(dest, contents);
+  try { fs.chmodSync(dest, 0o600); } catch (_) { /* chmod not supported on Windows */ }
+  console.log('.env created from .env.example with auto-generated JWT secrets.');
 }
