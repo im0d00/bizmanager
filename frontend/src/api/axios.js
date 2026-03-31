@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Use environment variable for API URL in production, fallback to proxy in development
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   timeout: 30000
 });
 
@@ -51,7 +54,7 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refresh_token');
       try {
-        const { data } = await axios.post('/api/auth/refresh', { refreshToken });
+        const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
         localStorage.setItem('access_token', data.accessToken);
         localStorage.setItem('refresh_token', data.refreshToken);
         api.defaults.headers['Authorization'] = `Bearer ${data.accessToken}`;
