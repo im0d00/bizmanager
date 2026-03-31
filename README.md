@@ -106,24 +106,28 @@ npm run preview   # Preview the production build locally
 
 Serve `frontend/dist/` with any static-file host (nginx, IIS, Caddy, etc.) and point the backend at your domain via `FRONTEND_URL` in `.env`.
 
-### Deploying to Vercel
+### Cloud Deployment
 
-⚠️ **Important**: Vercel does **not support SQLite databases**. You can deploy the frontend to Vercel, but the backend must be hosted elsewhere (Railway, Render, DigitalOcean, etc.).
+⚠️ **Important**: This application uses SQLite for the database. Most cloud platforms have ephemeral filesystems or don't support SQLite. For production, consider migrating to PostgreSQL.
 
-See **[VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md)** for complete instructions on:
-- Deploying frontend to Vercel
-- Hosting backend on Railway/Render/other platforms
-- Configuring environment variables
-- Common errors and solutions
+**Recommended Deployment Strategy:**
+- **Backend**: Deploy to Railway.app (see [RAILWAY_DEPLOYMENT.md](RAILWAY_DEPLOYMENT.md))
+- **Frontend**: Deploy to Vercel, Netlify, or Cloudflare Pages (see [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md))
+
+**Quick Links:**
+- **[Railway Deployment Guide](RAILWAY_DEPLOYMENT.md)** — Deploy the backend API to Railway
+- **[Vercel Deployment Guide](VERCEL_DEPLOYMENT.md)** — Deploy the frontend to Vercel
 
 Quick start:
 ```bash
+# Deploy backend to Railway
+# See RAILWAY_DEPLOYMENT.md for detailed instructions
+# The start.sh script handles everything automatically
+
 # Deploy frontend to Vercel
 npm install -g vercel
+cd frontend
 vercel --prod
-
-# Update vercel.json with your backend URL
-# Deploy backend to Railway, Render, or similar platform
 ```
 
 ---
