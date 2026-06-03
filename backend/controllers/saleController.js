@@ -1,4 +1,11 @@
 const db = require('../database/db');
+const {
+  DEFAULT_WAREHOUSE_ID,
+  adjustInventoryBalance,
+  syncProductGlobalStock,
+  maybeNotifyLowStock
+} = require('../services/inventoryService');
+const { logAudit } = require('../services/auditService');
 
 const getNextInvoiceNumber = () => {
   const prefixRow = db.prepare(`SELECT value FROM settings WHERE key='invoice_prefix'`).get();
@@ -85,7 +92,8 @@ const getOne = (req, res, next) => {
 
 const create = (req, res, next) => {
   try {
-    const { customer_id, items, discount = 0, notes } = req.body;
+    const { customer_id, items, discount = 0, notes, warehouse_id } = req.body;
+    const warehouseId = warehouse_id || DEFAULT_WAREHOUSE_ID;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: 'Items are required' });
@@ -99,7 +107,13 @@ const create = (req, res, next) => {
       const resolvedItems = items.map(item => {
         const product = db.prepare('SELECT * FROM products WHERE id = ?').get(item.product_id);
         if (!product) throw Object.assign(new Error(`Product not found: ${item.product_id}`), { statusCode: 404 });
-        if (product.stock < item.quantity) throw Object.assign(new Error(`Insufficient stock for ${product.name}`), { statusCode: 400 });
+        const balance = db.prepare(
+          `SELECT stock FROM product_inventory WHERE product_id=? AND warehouse_id=?`
+        ).get(product.id, warehouseId);
+        const warehouseStock = balance ? balance.stock : product.stock;
+        if (warehouseStock < item.quantity) {
+          throw Object.assign(new Error(`Insufficient stock for ${product.name} in selected warehouse`), { statusCode: 400 });
+        }
         const lineTotal = product.price * item.quantity;
         subtotal += lineTotal;
         return { product, quantity: item.quantity, lineTotal };
@@ -109,6 +123,10 @@ const create = (req, res, next) => {
       const taxAmount = (subtotal * taxRate) / 100;
       const total = subtotal + taxAmount - discountAmt;
       const invoiceNumber = getNextInvoiceNumber();
+
+      const saleStatus = req.body.status && ['paid', 'pending', 'cancelled'].includes(req.body.status)
+        ? req.body.status
+        : 'paid';
 
       const saleResult = db.prepare(
         `INSERT INTO sales (invoice_number, customer_id, user_id, subtotal, tax_amount, discount, total, notes)
@@ -121,12 +139,30 @@ const create = (req, res, next) => {
         db.prepare(
           `INSERT INTO sale_items (sale_id, product_id, name, price, cost, quantity, subtotal) VALUES (?,?,?,?,?,?,?)`
         ).run(saleId, product.id, product.name, product.price, product.cost, quantity, lineTotal);
-        db.prepare(`UPDATE products SET stock = stock - ? WHERE id = ?`).run(quantity, product.id);
+        adjustInventoryBalance(product.id, warehouseId, -quantity);
+        syncProductGlobalStock(product.id);
+        db.prepare(
+          `INSERT INTO inventory_movements (product_id, warehouse_id, movement_type, quantity, reference_id, note, performed_by)
+           VALUES (?, ?, 'sale', ?, ?, ?, ?)`
+        ).run(product.id, warehouseId, quantity, saleId, 'Stock reduced by sale', req.user.id);
+        maybeNotifyLowStock(product.id);
       }
 
       if (customer_id) {
         db.prepare(`UPDATE customers SET total_spent = total_spent + ?, updated_at=datetime('now') WHERE id=?`).run(total, customer_id);
       }
+
+      if (saleStatus === 'pending') {
+        const recipients = db.prepare(`SELECT id FROM users WHERE role IN ('admin', 'manager') AND is_active=1`).all();
+        const notificationStmt = db.prepare(
+          `INSERT INTO notifications (user_id, title, message, type, is_read) VALUES (?, ?, ?, 'info', 0)`
+        );
+        for (const recipient of recipients) {
+          notificationStmt.run(recipient.id, 'Pending order update', `Order ${invoiceNumber} is pending review.`);
+        }
+      }
+
+      db.prepare(`UPDATE sales SET status=?, updated_at=datetime('now') WHERE id=?`).run(saleStatus, saleId);
 
       return db.prepare(
         `SELECT s.*, c.name as customer_name FROM sales s LEFT JOIN customers c ON s.customer_id=c.id WHERE s.id=?`
@@ -134,6 +170,13 @@ const create = (req, res, next) => {
     });
 
     const sale = createSale();
+    logAudit({
+      userId: req.user?.id,
+      action: 'sale.created',
+      entityType: 'sale',
+      entityId: sale.id,
+      metadata: { invoice_number: sale.invoice_number, total: sale.total, warehouse_id: warehouseId }
+    });
     res.status(201).json(sale);
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });
@@ -150,6 +193,22 @@ const updateStatus = (req, res, next) => {
     db.prepare(`UPDATE sales SET status=?, updated_at=datetime('now') WHERE id=?`).run(status, req.params.id);
     const sale = db.prepare('SELECT * FROM sales WHERE id=?').get(req.params.id);
     if (!sale) return res.status(404).json({ error: 'Sale not found' });
+    if (status === 'pending') {
+      const recipients = db.prepare(`SELECT id FROM users WHERE role IN ('admin', 'manager') AND is_active=1`).all();
+      const notificationStmt = db.prepare(
+        `INSERT INTO notifications (user_id, title, message, type, is_read) VALUES (?, ?, ?, 'info', 0)`
+      );
+      for (const recipient of recipients) {
+        notificationStmt.run(recipient.id, 'Pending order update', `Order ${sale.invoice_number} is pending.`);
+      }
+    }
+    logAudit({
+      userId: req.user?.id,
+      action: 'sale.status_updated',
+      entityType: 'sale',
+      entityId: sale.id,
+      metadata: { status }
+    });
     res.json(sale);
   } catch (err) {
     next(err);
@@ -166,7 +225,12 @@ const remove = (req, res, next) => {
 
       for (const item of saleItems) {
         if (item.product_id) {
-          db.prepare(`UPDATE products SET stock = stock + ? WHERE id=?`).run(item.quantity, item.product_id);
+          adjustInventoryBalance(item.product_id, DEFAULT_WAREHOUSE_ID, item.quantity);
+          syncProductGlobalStock(item.product_id);
+          db.prepare(
+            `INSERT INTO inventory_movements (product_id, warehouse_id, movement_type, quantity, reference_id, note, performed_by)
+             VALUES (?, ?, 'adjustment', ?, ?, ?, ?)`
+          ).run(item.product_id, DEFAULT_WAREHOUSE_ID, item.quantity, req.params.id, 'Stock restored after sale deletion', req.user?.id || null);
         }
       }
 
@@ -179,6 +243,12 @@ const remove = (req, res, next) => {
     });
 
     deleteSale();
+    logAudit({
+      userId: req.user?.id,
+      action: 'sale.deleted',
+      entityType: 'sale',
+      entityId: req.params.id
+    });
     res.json({ message: 'Sale deleted' });
   } catch (err) {
     if (err.statusCode) return res.status(err.statusCode).json({ error: err.message });

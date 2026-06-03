@@ -46,6 +46,41 @@ const getDashboard = (req, res, next) => {
        GROUP BY strftime('%m', created_at) ORDER BY month ASC`
     ).all(year);
 
+    const warehouseKpis = db.prepare(
+      `SELECT w.id, w.name,
+              COALESCE(SUM(pi.stock),0) AS stock_units,
+              COUNT(DISTINCT pi.product_id) AS sku_count
+       FROM warehouses w
+       LEFT JOIN product_inventory pi ON pi.warehouse_id=w.id
+       WHERE w.is_active=1
+       GROUP BY w.id, w.name
+       ORDER BY w.name ASC`
+    ).all();
+
+    const predictive = db.prepare(
+      `SELECT p.id, p.name, p.stock, p.low_stock_at,
+              COALESCE(SUM(CASE WHEN im.movement_type='sale' THEN im.quantity ELSE 0 END),0) AS sold_units_14d
+       FROM products p
+       LEFT JOIN inventory_movements im ON im.product_id=p.id AND im.created_at >= datetime('now','-14 days')
+       WHERE p.is_active=1
+       GROUP BY p.id
+       HAVING p.stock <= p.low_stock_at OR sold_units_14d > 0
+       ORDER BY sold_units_14d DESC, p.stock ASC
+       LIMIT 6`
+    ).all().map((row) => {
+      const avgDaily = row.sold_units_14d / 14;
+      return {
+        ...row,
+        avg_daily_demand: Number(avgDaily.toFixed(2)),
+        projected_7d_need: Math.ceil(avgDaily * 7),
+        reorder_recommended: row.stock <= row.low_stock_at || row.stock <= Math.ceil(avgDaily * 7)
+      };
+    });
+
+    const pendingOrders = db.prepare(
+      `SELECT COUNT(*) AS val FROM sales WHERE status='pending'`
+    ).get().val;
+
     res.json({
       stats: {
         today_revenue: todayRevenue,
@@ -54,14 +89,17 @@ const getDashboard = (req, res, next) => {
         net_profit: monthRevenue - monthExpenses,
         total_customers: totalCustomers,
         total_products: totalProducts,
-        low_stock_count: lowStockCount
+        low_stock_count: lowStockCount,
+        pending_orders: pendingOrders
       },
       low_stock_items: lowStockItems,
       recent_sales: recentSales,
       charts: {
         daily_sales: dailySales,
         monthly_sales: monthlySales
-      }
+      },
+      kpis_by_location: warehouseKpis,
+      predictive_insights: predictive
     });
   } catch (err) {
     next(err);

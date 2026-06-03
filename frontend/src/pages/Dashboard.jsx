@@ -28,7 +28,7 @@ export default function Dashboard() {
 
   if (!data) return null;
 
-  const { stats, low_stock_items, recent_sales, charts } = data;
+  const { stats, low_stock_items, recent_sales, charts, kpis_by_location = [], predictive_insights = [] } = data;
 
   const monthlySalesData = MONTHS.map((m, i) => {
     const month = String(i + 1).padStart(2, '0');
@@ -57,7 +57,7 @@ export default function Dashboard() {
       </div>
 
       {/* Second stats row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatsCard icon={ShoppingCart} title="Month Expenses" value={formatCurrency(stats.month_expenses, symbol)} color="red" />
         <StatsCard icon={TrendingUp} title="Net Profit" value={formatCurrency(stats.net_profit, symbol)} color="green" />
         <StatsCard
@@ -67,9 +67,47 @@ export default function Dashboard() {
           subtitle="Products below threshold"
           color="yellow"
         />
+        <StatsCard icon={ShoppingCart} title="Pending Orders" value={stats.pending_orders || 0} subtitle="Awaiting processing" color="blue" />
       </div>
 
       {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card p-5">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Location KPIs</h3>
+          <div className="space-y-2">
+            {kpis_by_location.length === 0 ? (
+              <p className="text-sm text-gray-400">No warehouse metrics available</p>
+            ) : kpis_by_location.map((kpi) => (
+              <div key={kpi.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{kpi.name}</p>
+                  <p className="text-xs text-gray-500">{kpi.sku_count} SKUs</p>
+                </div>
+                <span className="text-sm font-semibold">{kpi.stock_units} units</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Predictive Supply Insights</h3>
+          {predictive_insights.length === 0 ? (
+            <p className="text-sm text-gray-400">No predictive alerts at this time</p>
+          ) : (
+            <div className="space-y-2">
+              {predictive_insights.map((item) => (
+                <div key={item.id} className="p-3 rounded-lg border border-primary-100 dark:border-primary-800 bg-primary-50/70 dark:bg-primary-900/10">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{item.name}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">
+                    Avg daily demand: {item.avg_daily_demand} · 7-day projected need: {item.projected_7d_need}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-5">
           <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Daily Sales (30 days)</h3>

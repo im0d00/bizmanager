@@ -1,4 +1,11 @@
 const db = require('../database/db');
+const {
+  DEFAULT_WAREHOUSE_ID,
+  upsertInventoryBalance,
+  syncProductGlobalStock,
+  maybeNotifyLowStock
+} = require('../services/inventoryService');
+const { logAudit } = require('../services/auditService');
 
 const getAll = (req, res, next) => {
   try {
@@ -71,6 +78,15 @@ const create = (req, res, next) => {
     ).run(name, sku || null, description || null, parseFloat(price) || 0, parseFloat(cost) || 0,
       parseInt(stock) || 0, parseInt(low_stock_at) || 10, category_id || null, is_active ? 1 : 0);
     const product = db.prepare('SELECT * FROM products WHERE rowid = ?').get(result.lastInsertRowid);
+    upsertInventoryBalance(product.id, DEFAULT_WAREHOUSE_ID, product.stock);
+    maybeNotifyLowStock(product.id);
+    logAudit({
+      userId: req.user?.id,
+      action: 'product.created',
+      entityType: 'product',
+      entityId: product.id,
+      metadata: { name: product.name, sku: product.sku, stock: product.stock }
+    });
     res.status(201).json(product);
   } catch (err) {
     next(err);
@@ -88,6 +104,16 @@ const update = (req, res, next) => {
       is_active !== undefined ? (is_active ? 1 : 0) : 1, req.params.id);
     const product = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
     if (!product) return res.status(404).json({ error: 'Product not found' });
+    upsertInventoryBalance(product.id, DEFAULT_WAREHOUSE_ID, product.stock);
+    syncProductGlobalStock(product.id);
+    maybeNotifyLowStock(product.id);
+    logAudit({
+      userId: req.user?.id,
+      action: 'product.updated',
+      entityType: 'product',
+      entityId: product.id,
+      metadata: { name: product.name, sku: product.sku, stock: product.stock }
+    });
     res.json(product);
   } catch (err) {
     next(err);
@@ -98,6 +124,12 @@ const remove = (req, res, next) => {
   try {
     const result = db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
     if (result.changes === 0) return res.status(404).json({ error: 'Product not found' });
+    logAudit({
+      userId: req.user?.id,
+      action: 'product.deleted',
+      entityType: 'product',
+      entityId: req.params.id
+    });
     res.json({ message: 'Product deleted' });
   } catch (err) {
     next(err);

@@ -1,19 +1,22 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Package, ShoppingCart, Receipt,
-  UserCheck, BarChart2, Settings, Building2, LogOut, ChevronLeft, ChevronRight
+  UserCheck, BarChart2, Settings, Building2, LogOut, ChevronLeft, ChevronRight, Bell, ShieldCheck, Warehouse
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'manager', 'employee'] },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'manager', 'employee', 'auditor', 'warehouse'] },
   { to: '/customers', icon: Users, label: 'Customers', roles: ['admin', 'manager', 'employee'] },
-  { to: '/products', icon: Package, label: 'Inventory', roles: ['admin', 'manager'] },
-  { to: '/sales', icon: ShoppingCart, label: 'Sales', roles: ['admin', 'manager', 'employee'] },
+  { to: '/products', icon: Package, label: 'Inventory', roles: ['admin', 'manager', 'warehouse'] },
+  { to: '/inventory-insights', icon: Warehouse, label: 'Inventory Insights', roles: ['admin', 'manager', 'warehouse'] },
+  { to: '/notifications', icon: Bell, label: 'Notifications', roles: ['admin', 'manager', 'employee', 'auditor', 'warehouse'] },
+  { to: '/sales', icon: ShoppingCart, label: 'Sales', roles: ['admin', 'manager', 'employee', 'warehouse'] },
   { to: '/expenses', icon: Receipt, label: 'Expenses', roles: ['admin', 'manager'] },
   { to: '/employees', icon: UserCheck, label: 'Employees', roles: ['admin', 'manager'] },
-  { to: '/reports', icon: BarChart2, label: 'Reports', roles: ['admin', 'manager'] },
+  { to: '/reports', icon: BarChart2, label: 'Reports', roles: ['admin', 'manager', 'auditor'] },
+  { to: '/audit-logs', icon: ShieldCheck, label: 'Audit Logs', roles: ['admin', 'manager', 'auditor'] },
   { to: '/settings', icon: Settings, label: 'Settings', roles: ['admin'] }
 ];
 

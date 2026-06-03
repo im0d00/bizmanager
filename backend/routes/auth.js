@@ -14,7 +14,7 @@ router.post('/register',
     body('name').isLength({ min: 2 }),
     body('email').isEmail(),
     body('password').isLength({ min: 6 }),
-    body('role').optional().isIn(['admin', 'manager', 'employee'])
+    body('role').optional().isIn(['admin', 'manager', 'employee', 'auditor', 'warehouse'])
   ],
   validate, ctrl.register
 );

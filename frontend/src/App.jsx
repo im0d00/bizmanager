@@ -10,6 +10,9 @@ import Expenses from './pages/Expenses';
 import Employees from './pages/Employees';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import InventoryInsights from './pages/InventoryInsights';
+import NotificationCenter from './pages/NotificationCenter';
+import AuditLogs from './pages/AuditLogs';
 import { useAuthStore } from './store/authStore';
 import { useAppStore } from './store/appStore';
 import api from './api/axios';
@@ -44,6 +47,9 @@ export default function App() {
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/employees" element={<Employees />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/inventory-insights" element={<InventoryInsights />} />
+        <Route path="/notifications" element={<NotificationCenter />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

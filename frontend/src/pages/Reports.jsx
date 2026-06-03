@@ -3,7 +3,7 @@ import { format, startOfMonth } from 'date-fns';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../api/axios';
 import StatsCard from '../components/StatsCard';
-import { DollarSign, TrendingUp, TrendingDown, Package } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Package, Download } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { useAppStore } from '../store/appStore';
 
@@ -22,7 +22,7 @@ export default function Reports() {
   const [monthlySales, setMonthlySales] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [expensesByCat, setExpensesByCat] = useState([]);
-  const { settings } = useAppStore();
+  const { settings, addNotification } = useAppStore();
   const symbol = settings?.currency_symbol || '$';
 
   const fetchAll = async () => {
@@ -49,6 +49,28 @@ export default function Reports() {
 
   useEffect(() => { fetchAll(); }, [from, to]);
 
+  const exportReport = async (formatType) => {
+    try {
+      const response = await api.get('/reports/inventory-export', {
+        params: { format: formatType },
+        responseType: 'blob'
+      });
+      const ext = formatType === 'xlsx' ? 'xlsx' : formatType;
+      const blob = new Blob([response.data]);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `inventory-report-${new Date().toISOString().slice(0, 10)}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      addNotification({ type: 'success', message: `Exported ${formatType.toUpperCase()} report` });
+    } catch {
+      addNotification({ type: 'error', message: `Failed to export ${formatType.toUpperCase()} report` });
+    }
+  };
+
   const monthlyData = MONTHS.map((m, i) => {
     const month = String(i + 1).padStart(2, '0');
     const found = monthlySales.find(r => r.month === month);
@@ -73,6 +95,9 @@ export default function Reports() {
             <label className="label m-0">To:</label>
             <input className="input w-36" type="date" value={to} onChange={e => setTo(e.target.value)} />
           </div>
+          <button className="btn-secondary" onClick={() => exportReport('pdf')}><Download className="w-4 h-4" />PDF</button>
+          <button className="btn-secondary" onClick={() => exportReport('xlsx')}><Download className="w-4 h-4" />Excel</button>
+          <button className="btn-secondary" onClick={() => exportReport('csv')}><Download className="w-4 h-4" />CSV</button>
         </div>
       </div>
 

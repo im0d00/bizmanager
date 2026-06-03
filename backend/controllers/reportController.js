@@ -1,4 +1,6 @@
 const db = require('../database/db');
+const PDFDocument = require('pdfkit');
+const XLSX = require('xlsx');
 
 const summary = (req, res, next) => {
   try {
@@ -122,4 +124,78 @@ const expensesByCategory = (req, res, next) => {
   }
 };
 
-module.exports = { summary, dailySales, monthlySales, topProducts, topCustomers, expensesByCategory };
+const exportInventory = (req, res, next) => {
+  try {
+    const format = String(req.query.format || 'csv').toLowerCase();
+    const rows = db.prepare(
+      `SELECT p.name, p.sku, p.stock, p.low_stock_at, c.name AS category
+       FROM products p
+       LEFT JOIN categories c ON c.id=p.category_id
+       WHERE p.is_active=1
+       ORDER BY p.name ASC`
+    ).all();
+
+    const date = new Date().toISOString().slice(0, 10);
+
+    if (format === 'csv') {
+      const headers = ['Name', 'SKU', 'Category', 'Stock', 'Low Stock At'];
+      const lines = [
+        headers.join(','),
+        ...rows.map((row) => [row.name, row.sku || '', row.category || '', row.stock, row.low_stock_at]
+          .map((val) => `"${String(val).replace(/"/g, '""')}"`)
+          .join(','))
+      ];
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename=\"inventory-report-${date}.csv\"`);
+      return res.send(lines.join('\n'));
+    }
+
+    if (format === 'xlsx') {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows.map((row) => ({
+        Name: row.name,
+        SKU: row.sku || '',
+        Category: row.category || '',
+        Stock: row.stock,
+        LowStockAt: row.low_stock_at
+      })));
+      XLSX.utils.book_append_sheet(wb, ws, 'Inventory');
+      const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=\"inventory-report-${date}.xlsx\"`);
+      return res.send(buf);
+    }
+
+    if (format === 'pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=\"inventory-report-${date}.pdf\"`);
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      doc.pipe(res);
+      doc.fontSize(16).text('Inventory Report', { align: 'left' });
+      doc.moveDown(0.4);
+      doc.fontSize(10).text(`Generated: ${new Date().toISOString()}`);
+      doc.moveDown(1);
+      doc.fontSize(10).text('Name', 40, doc.y, { width: 180, continued: true });
+      doc.text('SKU', { width: 80, continued: true });
+      doc.text('Category', { width: 120, continued: true });
+      doc.text('Stock', { width: 60, continued: true });
+      doc.text('Threshold');
+      doc.moveDown(0.4);
+      rows.forEach((row) => {
+        doc.text(row.name, 40, doc.y, { width: 180, continued: true });
+        doc.text(row.sku || '-', { width: 80, continued: true });
+        doc.text(row.category || '-', { width: 120, continued: true });
+        doc.text(String(row.stock), { width: 60, continued: true });
+        doc.text(String(row.low_stock_at));
+      });
+      doc.end();
+      return;
+    }
+
+    return res.status(400).json({ error: 'Unsupported format. Use csv, xlsx, or pdf.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { summary, dailySales, monthlySales, topProducts, topCustomers, expensesByCategory, exportInventory };

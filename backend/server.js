@@ -44,6 +44,10 @@ app.use('/api/employees', apiLimiter, require('./routes/employees'));
 app.use('/api/reports', apiLimiter, require('./routes/reports'));
 app.use('/api/settings', apiLimiter, require('./routes/settings'));
 app.use('/api/backup', apiLimiter, require('./routes/backup'));
+app.use('/api/inventory', apiLimiter, require('./routes/inventory'));
+app.use('/api/notifications', apiLimiter, require('./routes/notifications'));
+app.use('/api/audit', apiLimiter, require('./routes/audit'));
+app.use('/api/integrations', apiLimiter, require('./routes/integrations'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
